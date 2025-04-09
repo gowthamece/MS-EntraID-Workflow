@@ -1,0 +1,169 @@
+﻿@page "/workflows"
+@inject WorkflowApiClient WorkflowApiClient
+@rendermode InteractiveServer
+
+<h3>Workflows</h3>
+
+@if (workflows == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var workflow in workflows)
+            {
+                <tr>
+                    <td>@workflow.Id</td>
+                    <td>@workflow.Name</td>
+                    <td>@workflow.Description</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" @onclick="()=> OpenEditModal(workflow)">Edit</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => ConfirmDelete(workflow.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <button class="btn btn-success" type="submit" @onclick="OpenAddModal">Add New Workflow</button>
+}
+
+<!-- Add/Edit Modal -->
+@if (isModalOpen)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="workflowName" class="form-label">Name</label>
+                        <input type="text" id="workflowName" class="form-control" @bind="workflowName"/>
+                    </div>
+                    <div class="mb-3">
+                        <label for="workflowDescription" class="form-label">Description</label>
+                        <textarea id="workflowDescription" class="form-control" @bind="workflowDescription"></textarea>
+                    </div> 
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button class="btn btn-primary" @onclick="SaveWorkflow">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation -->
+@if (isDeleteConfirmationOpen)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteConfirmation"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this workflow?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDeleteConfirmation">Cancel</button>
+                    <button class="btn btn-danger" @onclick="DeleteWorkflow">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EntraID_Workflow.Web.Workflow>? workflows;
+    // Removed direct binding to init-only properties.
+    // Use separate local variables for Name and Description.
+    private int currentWorkflowId = 0;
+    private string workflowName = string.Empty;
+    private string workflowDescription = string.Empty;
+    private bool isModalOpen = false;
+    private bool isDeleteConfirmationOpen = false;
+    private string modalTitle = string.Empty;
+    private int workflowToDeleteId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("OpenAddModal called");
+        workflows = await WorkflowApiClient.GetWorkflowsAsync();
+    }
+
+    void OpenAddModal()
+    {
+        Console.WriteLine("OpenAddModal called");
+        currentWorkflowId = 0;
+        workflowName = string.Empty;
+        workflowDescription = string.Empty;
+        modalTitle = "Add Workflow";
+        isModalOpen = true;
+    }
+
+    private void OpenEditModal(EntraID_Workflow.Web.Workflow workflow)
+    {
+        currentWorkflowId = workflow.Id;
+        workflowName = workflow.Name;
+        workflowDescription = workflow.Description;
+        modalTitle = "Edit Workflow";
+        isModalOpen = true;
+    }
+
+    private async Task SaveWorkflow()
+    {
+        // Create a new workflow instance with the updated values.
+        var workflowToSave = new EntraID_Workflow.Web.Workflow(currentWorkflowId, workflowName, workflowDescription);
+        if (currentWorkflowId == 0)
+        {
+            // Add new workflow
+            await WorkflowApiClient.CreateWorkflowAsync(workflowToSave);
+        }
+        else
+        {
+            // Update existing workflow
+            await WorkflowApiClient.UpdateWorkflowAsync(currentWorkflowId, workflowToSave);
+        }
+
+        workflows = await WorkflowApiClient.GetWorkflowsAsync();
+        CloseModal();
+    }
+
+    private void CloseModal()
+    {
+        isModalOpen = false;
+    }
+
+    private void ConfirmDelete(int id)
+    {
+        workflowToDeleteId = id;
+        isDeleteConfirmationOpen = true;
+    }
+
+    private async Task DeleteWorkflow()
+    {
+        await WorkflowApiClient.DeleteWorkflowAsync(workflowToDeleteId);
+        workflows = await WorkflowApiClient.GetWorkflowsAsync();
+        CloseDeleteConfirmation();
+    }
+
+    private void CloseDeleteConfirmation()
+    {
+        isDeleteConfirmationOpen = false;
+    }
+}
