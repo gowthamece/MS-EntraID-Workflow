@@ -1,0 +1,17 @@
+@page
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.OpenIdConnect
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<h1>Sign In</h1>
+
+<p>Welcome, @User.Identity?.Name!</p>
+
+<form method="post" asp-controller="Account" asp-action="SignOut">
+    <button type="submit">Sign Out</button>
+</form>
+
+<form method="post" asp-controller="Account" asp-action="SignIn">
+    <button type="submit">Sign In</button>
+</form>

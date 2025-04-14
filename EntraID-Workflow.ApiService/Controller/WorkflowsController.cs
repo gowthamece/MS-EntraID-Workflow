@@ -7,11 +7,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EntraID.Workflow.ApiService.DBContext;
 using EntraID.Workflow.ApiService.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EntraID.Workflow.ApiService.Controller
 {
-    [Route("api/[controller]")]
+   
     [ApiController]
+    [Route("api/[controller]")]
+    [Authorize(Policy = "AuthZPolicy")]
     public class WorkflowsController : ControllerBase
     {
         private readonly AppDbContext _context;
