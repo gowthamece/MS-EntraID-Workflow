@@ -31,10 +31,10 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApp(configureMicrosoftIdentityOptions =>
     {
         builder.Configuration.Bind("AzureAd", configureMicrosoftIdentityOptions);
-        configureMicrosoftIdentityOptions.SaveTokens = true; // Save tokens for retrieval
+     //   configureMicrosoftIdentityOptions.SaveTokens = true; // Save tokens for retrieval
     })
     .EnableTokenAcquisitionToCallDownstreamApi(new string[] { builder.Configuration["DownstreamApi:Scopes"] ?? string.Empty })
-    .AddDownstreamApi("DownstreamApi", builder.Configuration.GetSection("DownstreamApi"))
+    .AddDownstreamApi("WeatherList", builder.Configuration.GetSection("DownstreamApi"))
     .AddInMemoryTokenCaches();
 
 builder.Services.AddControllersWithViews()
@@ -42,7 +42,7 @@ builder.Services.AddControllersWithViews()
 
 builder.Services.AddAuthorization(options =>
 {
-    // By default, all incoming requests will be authorized according to the default policy
+    // By default, all incoming requests will be authorized according to the default policy 
     options.FallbackPolicy = options.DefaultPolicy;
 });
 
