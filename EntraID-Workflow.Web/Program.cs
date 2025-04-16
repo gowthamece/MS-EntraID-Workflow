@@ -1,6 +1,5 @@
 using EntraID_Workflow.Web;
 using EntraID_Workflow.Web.Components;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
@@ -21,6 +20,14 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
     });
 builder.Services.AddHttpClient<WorkflowApiClient>(client =>
 {    client.BaseAddress = new("https+http://apiservice"); // Replace with your API base URL
+});
+
+builder.Services.AddSingleton<KeyVaultService>(provider =>
+{
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    var keyVaultUrl = configuration["AzureAd:KeyVaultUrl"]
+                      ?? throw new InvalidOperationException("AzureAd:KeyVaultUrl is not configured.");
+    return new KeyVaultService(keyVaultUrl);
 });
 
 // Register IHttpContextAccessor for dependency injection
@@ -46,16 +53,37 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = options.DefaultPolicy;
 });
 
-builder.Services.ConfigureApplicationCookie(configureCookieAuthenticationOption =>
-{
-    configureCookieAuthenticationOption.Cookie.SameSite = SameSiteMode.None;
-    configureCookieAuthenticationOption.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    configureCookieAuthenticationOption.Cookie.Name = "BlazorApp01";
-});
+//builder.Services.ConfigureApplicationCookie(configureCookieAuthenticationOption =>
+//{
+//    configureCookieAuthenticationOption.Cookie.SameSite = SameSiteMode.None;
+//    configureCookieAuthenticationOption.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+//    configureCookieAuthenticationOption.Cookie.Name = "BlazorApp01";
+//});
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
+
+var environment = builder.Environment.EnvironmentName;
+string clientSecret;
+
+if (environment == "Development")
+{
+    // Read client secret from local secret.json file in development
+    clientSecret = builder.Configuration["AzureAd:ClientSecret"] ?? throw new InvalidOperationException("AzureAd:ClientSecret is not configured.");
+}
+else
+{
+    // Use Key Vault for staging and production
+    var keyVaultService = new KeyVaultService(builder.Configuration["AzureAd:KeyVaultUrl"] ?? throw new InvalidOperationException("AzureAd:ClientSecret is not configured."));
+    clientSecret = await keyVaultService.GetSecretAsync("ClientSecret");
+}
+
+builder.Services.Configure<MicrosoftIdentityOptions>(options =>
+{
+    builder.Configuration.Bind("AzureAd", options);
+    options.ClientSecret = clientSecret;
+});
 
 var app = builder.Build();
 
@@ -67,17 +95,15 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseRouting();
 app.UseAntiforgery();
+app.MapControllers();
 
 app.UseOutputCache();
-
+app.MapBlazorHub();
 // Wrap Razor components in CascadingAuthenticationState to provide AuthenticationState
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
