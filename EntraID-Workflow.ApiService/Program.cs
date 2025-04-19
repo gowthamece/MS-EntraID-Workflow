@@ -3,20 +3,26 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection; // Add this line
-using Microsoft.OpenApi.Models; // Add this line
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authorization; // Add this line
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpContextAccessor();
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddMicrosoftIdentityWebApi(options =>
-            {
-                builder.Configuration.Bind("AzureAd", options);
-                options.Events = new JwtBearerEvents();
-            }, options => { builder.Configuration.Bind("AzureAd", options); });
-
 builder.Services.AddControllers();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AuthZPolicy", policyBuilder => 
+    {
+        policyBuilder.Requirements.Add(new ScopeAuthorizationRequirement() { RequiredScopesConfigurationKey = $"AzureAd:Scopes" });
+        policyBuilder.RequireAuthenticatedUser();
+    });
+});
+
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication", LogLevel.Debug);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authorization", LogLevel.Debug);
+
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 builder.AddSqlServerDbContext<AppDbContext>("sql");
@@ -42,23 +48,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-//string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
-
-//app.MapGet("/weatherforecast", () => 
-//{
-//    var forecast = Enumerable.Range(1, 5).Select(index =>
-//        new WeatherForecast
-//        (
-//            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-//            Random.Shared.Next(-20, 55),
-//            summaries[Random.Shared.Next(summaries.Length)]
-//        ))
-//        .ToArray();
-//    return forecast;
-//})
-//.WithName("GetWeatherForecast");
-
-app.MapDefaultEndpoints();
+//app.MapDefaultEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
@@ -75,18 +65,15 @@ if (app.Environment.IsDevelopment())
         dbContext.Database.EnsureCreated();
     }
 }
-
+app.UseAuthentication();
 app.UseHttpsRedirection();
 
-app.UseRouting();
-app.UseAuthentication();
+//app.UseRouting();
+
 app.UseAuthorization();
 
+// Map controllers
 app.MapControllers();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

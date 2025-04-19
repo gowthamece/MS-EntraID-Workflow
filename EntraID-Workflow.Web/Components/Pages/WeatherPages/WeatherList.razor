@@ -1,0 +1,33 @@
+﻿@page "/weatherList"
+@inherits WeatherBase
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th aria-label="Temperature in Celsius">Temp. (C)</th>
+            <th aria-label="Temperature in Farenheit">Temp. (F)</th>
+            <th>Summary</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (weatherList == null)
+        {
+            <tr>
+                <td colspan="4"><em>Loading...</em></td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var forecast in weatherList)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        }
+        </tbody>
+</table>
