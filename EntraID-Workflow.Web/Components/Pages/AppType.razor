@@ -1,0 +1,156 @@
+@page "/apptypes"
+@inject AppTypeApiClient AppTypeApiClient
+@rendermode InteractiveServer
+
+<h3>App Types</h3>
+
+@if (appTypes == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var appType in appTypes)
+            {
+                <tr>
+                    <td>@appType.Id</td>
+                    <td>
+                        @if (editId == appType.Id)
+                        {
+                            <input @bind="editName" class="form-control" />
+                        }
+                        else
+                        {
+                            @appType.Name
+                        }
+                    </td>
+                    <td>
+                        @if (editId == appType.Id)
+                        {
+                            <button type="button" class="btn btn-sm btn-success" @onclick="() => UpdateAppType(appType.Id)">Save</button>
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit">Cancel</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick="() => StartEdit(appType)">Edit</button>
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteAppType(appType.Id)">Delete</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <button class="btn btn-success" type="submit" @onclick="OpenAddModal">Add New App Type</button>
+}
+
+<!-- Add/Edit Modal -->
+@if (isModalOpen)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="appTypeName" class="form-label">Name</label>
+                        <input type="text" id="appTypeName" class="form-control" @bind="appTypeName"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button class="btn btn-primary" @onclick="SaveAppType">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EntraID_Workflow.Web.AppType>? appTypes;
+    private int currentAppTypeId = 0;
+    private string appTypeName = string.Empty;
+    private bool isModalOpen = false;
+    private string modalTitle = string.Empty;
+    private int? editId = null;
+    private string editName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        appTypes = await AppTypeApiClient.GetAppTypesAsync();
+    }
+
+    private void OpenAddModal()
+    {
+        currentAppTypeId = 0;
+        appTypeName = string.Empty;
+        modalTitle = "Add App Type";
+        isModalOpen = true;
+    }
+
+    private void StartEdit(EntraID_Workflow.Web.AppType appType)
+    {
+        editId = appType.Id;
+        editName = appType.Name;
+    }
+
+    private void CancelEdit()
+    {
+        editId = null;
+        editName = string.Empty;
+    }
+
+    private async Task SaveAppType()
+       {
+           var appTypeToSave = new EntraID_Workflow.Web.AppType
+           {
+               Id = currentAppTypeId,
+               Name = appTypeName
+           };
+
+           if (currentAppTypeId == 0)
+           {
+               await AppTypeApiClient.CreateAppTypeAsync(new EntraID_Workflow.Web.AppType { Id = 0, Name = appTypeName });
+           }
+           else
+           {
+               await AppTypeApiClient.UpdateAppTypeAsync(currentAppTypeId, appTypeToSave);
+           }
+
+           appTypes = await AppTypeApiClient.GetAppTypesAsync();
+           CloseModal();
+       }
+
+    private void CloseModal()
+    {
+        isModalOpen = false;
+    }
+
+    private async Task UpdateAppType(int id)
+    {
+        if (editId == id && !string.IsNullOrWhiteSpace(editName))
+               {
+                   await AppTypeApiClient.UpdateAppTypeAsync(id, new EntraID_Workflow.Web.AppType { Id = id, Name = editName });
+                   editId = null;
+                   editName = string.Empty;
+                   appTypes = await AppTypeApiClient.GetAppTypesAsync();
+               }
+    }
+
+    private async Task DeleteAppType(int id)
+    {
+        await AppTypeApiClient.DeleteAppTypeAsync(id);
+        appTypes = await AppTypeApiClient.GetAppTypesAsync();
+    }
+}

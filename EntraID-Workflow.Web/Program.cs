@@ -22,6 +22,13 @@ builder.Services.AddHttpClient<WorkflowApiClient>(client =>
 {    client.BaseAddress = new("https+http://apiservice"); // Replace with your API base URL
 });
 
+builder.Services.AddHttpClient<AppRegistrationApiClient>(client=>client.BaseAddress=new("https+http://apiservice"));
+
+builder.Services.AddHttpClient<AppTypeApiClient>(client =>
+{
+    client.BaseAddress = new("https+http://apiservice"); // Replace with actual API base URL
+});
+
 builder.Services.AddSingleton<KeyVaultService>(provider =>
 {
     var configuration = provider.GetRequiredService<IConfiguration>();
@@ -103,7 +110,9 @@ app.UseAntiforgery();
 app.MapControllers();
 
 app.UseOutputCache();
-app.MapBlazorHub();
+
+//app.MapBlazorHub();  => This will block the click events and prevent the serverside rendering of the components
+
 // Wrap Razor components in CascadingAuthenticationState to provide AuthenticationState
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

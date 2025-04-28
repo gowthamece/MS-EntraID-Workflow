@@ -2,6 +2,8 @@
 @inject WorkflowApiClient WorkflowApiClient
 @rendermode InteractiveServer
 
+
+
 <h3>Workflows</h3>
 
 @if (workflows == null)
@@ -27,7 +29,7 @@ else
                     <td>@workflow.Name</td>
                     <td>@workflow.Description</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" @onclick="()=> OpenEditModal(workflow)">Edit</button>
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="()=> OpenEditModal(workflow)">Edit</button>
                         <button class="btn btn-danger btn-sm" @onclick="() => ConfirmDelete(workflow.Id)">Delete</button>
                     </td>
                 </tr>
@@ -35,6 +37,7 @@ else
         </tbody>
     </table>
     <button class="btn btn-success" type="submit" @onclick="OpenAddModal">Add New Workflow</button>
+    <button class="btn btn-success" @onclick="Test">TestFunction</button>
 }
 
 <!-- Add/Edit Modal -->
@@ -89,10 +92,8 @@ else
 }
 
 @code {
-  
+
     private List<EntraID_Workflow.Web.Workflow>? workflows;
-    // Removed direct binding to init-only properties.
-    // Use separate local variables for Name and Description.
     private int currentWorkflowId = 0;
     private string workflowName = string.Empty;
     private string workflowDescription = string.Empty;
@@ -103,11 +104,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine("OpenAddModal called");
+       // Console.WriteLine("OpenAddModal called");
         workflows = await WorkflowApiClient.GetWorkflowsAsync();
     }
-
-    void OpenAddModal()
+    public async Task Test()
+    {
+        
+    }
+    public void OpenAddModal()
     {
         Console.WriteLine("OpenAddModal called");
         currentWorkflowId = 0;
@@ -117,7 +121,7 @@ else
         isModalOpen = true;
     }
 
-    private void OpenEditModal(EntraID_Workflow.Web.Workflow workflow)
+    public void OpenEditModal(EntraID_Workflow.Web.Workflow workflow)
     {
         currentWorkflowId = workflow.Id;
         workflowName = workflow.Name;

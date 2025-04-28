@@ -1,0 +1,56 @@
+@page "/app-registrations"
+
+<h3>App Registrations</h3>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>App Name</th>
+            <th>Owner Email</th>
+            <th>App Type</th>
+            <th>Redirect URL</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (appRegistrations.Any())
+        {
+            foreach (var app in appRegistrations)
+            {
+                <tr>
+                    <td>@app.AppName</td>
+                    <td>@app.OwnerEmail</td>
+                    <td>@app.AppType</td>
+                    <td>@app.RedirectUrl</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">No app registrations found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<AppRegistrationModel> appRegistrations = new List<AppRegistrationModel>();
+
+    protected override void OnInitialized()
+    {
+        // Sample data for demonstration purposes
+        appRegistrations = new List<AppRegistrationModel>
+        {
+            new AppRegistrationModel { AppName = "App1", OwnerEmail = "owner1@example.com", AppType = "Web", RedirectUrl = "https://app1.com" },
+            new AppRegistrationModel { AppName = "App2", OwnerEmail = "owner2@example.com", AppType = "SPA", RedirectUrl = "https://app2.com" }
+        };
+    }
+
+    public class AppRegistrationModel
+    {
+        public string AppName { get; set; } = string.Empty;
+        public string OwnerEmail { get; set; } = string.Empty;
+        public string AppType { get; set; } = string.Empty;
+        public string RedirectUrl { get; set; } = string.Empty;
+    }
+}

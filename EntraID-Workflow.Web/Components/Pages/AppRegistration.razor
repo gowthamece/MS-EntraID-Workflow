@@ -1,0 +1,141 @@
+@page "/app-registration"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Json
+
+@inject AppRegistrationApiClient AppRegistrationApiClient
+@inject HttpClient Http
+@inject AppTypeApiClient httpAppTypeApiClient
+@rendermode InteractiveServer
+
+<h3>App Registration</h3>
+
+<EditForm Model="appRegistrationModel" OnValidSubmit="HandleValidSubmit" FormName="AppRegistrationForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label for="appName" class="form-label">App Name</label>
+        <InputText id="appName" class="form-control" @bind-Value="appRegistrationModel.AppName" />
+        <ValidationMessage For="() => appRegistrationModel.AppName" />
+    </div>
+
+    <div class="mb-3">
+        <label for="ownerEmail" class="form-label">Owner Email</label>
+        <InputText id="ownerEmail" type="email" class="form-control" @bind-Value="appRegistrationModel.OwnerEmail" />
+        <ValidationMessage For="() => appRegistrationModel.OwnerEmail" />
+    </div>
+
+    <div class="mb-3">
+        <label for="appType" class="form-label">App Type</label>
+        <InputSelect id="appType" class="form-select" @bind-Value="appRegistrationModel.AppTypeId">
+            @foreach (var type in appTypes)
+            {
+                <option value="@type.Id">@type.Name</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="() => appRegistrationModel.AppTypeId" />
+    </div>
+
+    <div class="mb-3">
+        <label for="redirectUrl" class="form-label">Redirect URL</label>
+        <InputText id="redirectUrl" class="form-control" @bind-Value="appRegistrationModel.RedirectUrl" />
+        <ValidationMessage For="() => appRegistrationModel.RedirectUrl" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm(FormName = "AppRegistrationForm")]
+    private AppRegistrationModel? appRegistrationModel { get; set; } = new AppRegistrationModel();
+    private List<AppType> appTypes = new();
+
+    // protected override async Task OnInitializedAsync()
+    //    {
+    //        // Initialize model and load AppTypes
+    //        appRegistrationModel ??= new();
+    //        var fetchedAppTypes = await httpAppTypeApiClient.GetAppTypesAsync();
+    //        appTypes = fetchedAppTypes.Select(type => new AppType
+    //        {
+    //            Id = type.Id,
+    //            Name = type.Name
+    //        }).ToList();
+
+    //        if (appTypes.Any())
+    //        {
+    //            appRegistrationModel.AppTypeId = appTypes[0].Id;
+    //            appRegistrationModel.AppType = appTypes[0];
+    //        }
+    //    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (httpAppTypeApiClient == null)
+        {
+            throw new InvalidOperationException("AppTypeApiClient is not properly registered in the DI container.");
+        }
+
+        var fetchedAppTypes = await httpAppTypeApiClient.GetAppTypesAsync();
+        appTypes = fetchedAppTypes.Select(type => new AppType
+        {
+            Id = type.Id,
+            Name = type.Name
+        }).ToList();
+
+        if (appTypes.Any())
+        {
+            appRegistrationModel.AppTypeId = appTypes[0].Id;
+            appRegistrationModel.AppType = appTypes[0];
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var payload = new EntraID_Workflow.Web.AppRegistration
+        {
+            Id = 0,
+            AppName = appRegistrationModel.AppName,
+            OwnerEmail = appRegistrationModel.OwnerEmail,
+            AppTypeId = appRegistrationModel.AppTypeId,
+            AppType = new EntraID_Workflow.Web.AppType { Id = appRegistrationModel.AppTypeId, Name = appRegistrationModel.AppType.Name },
+            RedirectUrl = appRegistrationModel.RedirectUrl,
+            StatusId = 1,
+            Status = new EntraID_Workflow.Web.Status { Id = 1, Name = "Submitted" }
+        };
+
+        await AppRegistrationApiClient.CreateAppRegistrationAsync(payload);
+    }
+
+    public class AppRegistrationModel
+    {
+        [Required]
+        public string AppName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string OwnerEmail { get; set; } = string.Empty;
+
+        [Required]
+        public int AppTypeId { get; set; }
+        public AppType AppType { get; set; } = new AppType();
+
+        [Required]
+        public string RedirectUrl { get; set; } = string.Empty;
+
+        public int StatusId { get; set; }
+        public Status Status { get; set; } = new Status { Id = 1, Name = "Submitted" };
+    }
+
+    public class AppType
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class Status
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+}
